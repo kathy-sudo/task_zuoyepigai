@@ -1,0 +1,5 @@
+{
+  "name": "AI AutoGrader",
+  "description": "An intelligent academic grading assistant that evaluates student homework based on understanding, logic, and completeness using Gemini 2.5 Flash.",
+  "requestFramePermissions": []
+}
