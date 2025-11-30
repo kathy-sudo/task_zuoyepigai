@@ -1,21 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GradingResult } from "../types";
+import { GradingResult, SubmissionContent } from "../types";
 
 // Initialize the client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const gradeHomework = async (homeworkText: string): Promise<GradingResult> => {
-  if (!homeworkText.trim()) {
-    throw new Error("Homework text cannot be empty.");
+export const gradeHomework = async (submission: SubmissionContent): Promise<GradingResult> => {
+  if (!submission.data) {
+    throw new Error("Invalid submission data provided.");
   }
 
-  const modelId = "gemini-2.5-flash"; // Using Flash for fast text processing
+  const modelId = "gemini-2.5-flash"; // Using Flash for fast multimodal processing
   
   const systemInstruction = `
     You are an expert academic grader and teaching assistant known for precision, fairness, and constructive feedback.
     
     Your Task:
-    Analyze the student's homework assignment provided in the user prompt.
+    Analyze the student's homework assignment provided.
     Assign a score (0-100) and provide a brief, actionable comment.
 
     Grading Criteria (Standardized):
@@ -29,10 +29,31 @@ export const gradeHomework = async (homeworkText: string): Promise<GradingResult
     Include a 'breakdown' object with individual scores (0-100) for 'understanding', 'logic', and 'completeness'.
   `;
 
+  // Prepare contents based on input type
+  const parts = [];
+  
+  if (submission.type === 'file') {
+    // For PDFs and Images
+    parts.push({
+      inlineData: {
+        mimeType: submission.mimeType,
+        data: submission.data
+      }
+    });
+    parts.push({ text: "Please grade this homework assignment based on the provided file." });
+  } else {
+    // For extracted text (DOCX, TXT, MD)
+    parts.push({ text: "Here is the content of the homework assignment:" });
+    parts.push({ text: submission.data });
+    parts.push({ text: "Please grade this content." });
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: modelId,
-      contents: homeworkText,
+      contents: {
+        parts: parts
+      },
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
